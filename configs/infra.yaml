@@ -24,7 +24,7 @@ sbatch_args:
   mem:
     _target_: src.infra.utils.num_gpus_to_mem
     num_gpus: ${num_gpus}
-    mem_per_gpu: 16
+    mem_per_gpu: 32
   # mem-per-gpu: 64G
   cpus-per-gpu: 5
   comment: ${experiment_name}
