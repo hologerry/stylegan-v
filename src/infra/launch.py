@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
             cfg.env.objects_to_copy,
             cfg.env.symlinks_to_create,
             quiet=quiet,
-            ignore_uncommited_changes=True,
+            ignore_uncommitted_changes=True,
             overwrite=cfg.get('overwrite', False))
 
         with open(training_cmd_save_path, 'w') as f:

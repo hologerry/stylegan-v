@@ -439,7 +439,7 @@ def main():
         else:
             print(f'Did not symlink `{cfg.env.symlink_output}` since resuming training.')
     else:
-        os.makedirs(args.run_dir, exist_ok=args.resume_whole_state)
+        os.makedirs(args.run_dir, exist_ok=True)
 
     # Launch processes.
     print('Launching processes...')

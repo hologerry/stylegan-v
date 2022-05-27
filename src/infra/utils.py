@@ -58,14 +58,14 @@ def create_project_dir(
     objects_to_copy: List[os.PathLike],
     symlinks_to_create: List[os.PathLike],
     quiet: bool=False,
-    ignore_uncommited_changes: bool=False,
+    ignore_uncommitted_changes: bool=False,
     overwrite: bool=False):
 
     # if is_git_repo(os.getcwd()) and are_there_uncommitted_changes():
-    #     if ignore_uncommited_changes or click.confirm("There are uncommited changes. Continue?", default=False):
+    #     if ignore_uncommitted_changes or click.confirm("There are uncommitted changes. Continue?", default=False):
     #         pass
     #     else:
-    #         raise PermissionError("Cannot created a dir when there are uncommited changes")
+    #         raise PermissionError("Cannot created a dir when there are uncommitted changes")
 
     if os.path.exists(project_dir):
         if overwrite or click.confirm(f'Dir {project_dir} already exists. Overwrite it?', default=False):

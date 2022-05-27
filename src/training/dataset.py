@@ -515,13 +515,27 @@ class VideosFolderDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict:
         if self.load_n_consecutive:
             num_frames_available = self._video_dict[self._all_objects[idx]]
-            assert num_frames_available - self.load_n_consecutive * self.subsample_factor >= 0, f"We have only {num_frames_available} frames available, cannot load {self.load_n_consecutive} frames."
-
-            if self.load_n_consecutive_random_offset:
-                random_offset = random.randint(0, num_frames_available - self.load_n_consecutive * self.subsample_factor + self.subsample_factor - 1)
+            if num_frames_available - self.load_n_consecutive * self.subsample_factor < 0:
+                frames_idx = np.arange(0, num_frames_available, self.subsample_factor, dtype=int)
+                frames_idx_len = frames_idx.shape[0]
+                frames_idx_list = [frames_idx]
+                cur_frames_idx_len = frames_idx_len
+                while cur_frames_idx_len < self.load_n_consecutive:
+                    if cur_frames_idx_len + frames_idx_len <= self.load_n_consecutive:
+                        frames_idx_list.append(frames_idx)
+                        cur_frames_idx_len += frames_idx_len
+                    else:
+                        pad_frames_len = self.load_n_consecutive - cur_frames_idx_len
+                        frames_idx_list.append(frames_idx[:pad_frames_len])
+                        cur_frames_idx_len += pad_frames_len
+                frames_idx = np.concatenate(frames_idx_list, axis=0)
             else:
-                random_offset = 0
-            frames_idx = np.arange(0, self.load_n_consecutive * self.subsample_factor, self.subsample_factor) + random_offset
+                if self.load_n_consecutive_random_offset:
+                    random_offset = random.randint(0, num_frames_available - self.load_n_consecutive * self.subsample_factor + self.subsample_factor - 1)
+                else:
+                    random_offset = 0
+                frames_idx = np.arange(0, self.load_n_consecutive * self.subsample_factor, self.subsample_factor, dtype=int) + random_offset
+            frames_idx = frames_idx.tolist()
         else:
             frames_idx = None
 
@@ -555,8 +569,9 @@ class VideosFolderDataset(Dataset):
             if total_len > self.max_num_frames:
                 offset = random.randint(0, total_len - self.max_num_frames)
             frames_idx = sample_frames(self.sampling_dict, total_video_len=min(total_len, self.max_num_frames)) + offset
+            frames_idx = frames_idx.astype(int)
         else:
-            frames_idx = np.array(frames_idx)
+            frames_idx = np.array(frames_idx, dtype=int)
 
         images = raw_video[frames_idx]
 

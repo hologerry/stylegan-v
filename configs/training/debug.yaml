@@ -5,7 +5,7 @@ gpus: ${num_gpus}
 cfg: auto # Base config [default: auto]. One of ['auto', 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar']
 snap: 200
 kimg: 2000
-metrics: ["fvd2048_16f", "fvd2048_128f", "fvd2048_128f_subsample8f", "fid50k_full"]
+metrics: ["fvd2048_16f", "fvd2048_128f", "fvd2048_128f_subsample8f"]
 
 aug: ada # One of ['noaug', 'ada', 'fixed']
 mirror: true # Enable dataset x-flips [default: false]
