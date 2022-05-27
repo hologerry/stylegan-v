@@ -4,12 +4,12 @@ data: ${dataset.path}
 gpus: ${num_gpus}
 cfg: auto # Base config [default: auto]. One of ['auto', 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar']
 snap: 200
-kimg: 2500000
+kimg: 2000
 metrics: ["fvd2048_16f", "fvd2048_128f", "fvd2048_128f_subsample8f", "fid50k_full"]
 
 aug: ada # One of ['noaug', 'ada', 'fixed']
 mirror: true # Enable dataset x-flips [default: false]
-batch_size: 64
+batch_size: 4
 resume: ~
 
 # General settings
@@ -33,4 +33,4 @@ fp32: false # Disable mixed-precision training
 nhwc: false # Use NHWC memory format with FP16
 nobench: false # Disable cuDNN benchmarking
 allow_tf32: false # Allow PyTorch to use TF32 internally
-num_workers: 8 # Override number of DataLoader workers
+num_workers: 3 # Override number of DataLoader workers

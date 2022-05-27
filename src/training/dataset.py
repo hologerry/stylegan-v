@@ -19,6 +19,7 @@ import PIL.Image
 import torch
 from src import dnnlib
 from omegaconf import DictConfig, OmegaConf
+from torchvision.io import read_video
 
 from src.training.layers import sample_frames
 
@@ -280,11 +281,11 @@ class VideoFramesFolderDataset(Dataset):
         if self.subsample_factor > 1 and self.load_n_consecutive is None:
             raise NotImplementedError("Can do subsampling only when loading consecutive frames.")
 
-        listdir_full_paths = lambda d: sorted([os.path.join(d, x) for x in os.listdir(d)])
         name = os.path.splitext(os.path.basename(self._path))[0]
 
         if os.path.isdir(self._path):
             self._type = 'dir'
+            listdir_full_paths = lambda d: sorted([os.path.join(d, x) for x in os.listdir(d)])
             # We assume that the depth is 2
             self._all_objects = {o for d in listdir_full_paths(self._path) for o in (([d] + listdir_full_paths(d)) if os.path.isdir(d) else [d])}
             self._all_objects = {os.path.relpath(o, start=os.path.dirname(self._path)) for o in {self._path}.union(self._all_objects)}
@@ -450,6 +451,118 @@ class VideoFramesFolderDataset(Dataset):
 
     def compute_max_num_frames(self) -> int:
         return max(len(frames) for frames in self._video_idx2frames)
+
+
+class VideosFolderDataset(Dataset):
+    def __init__(self,
+        path,                                           # Path to directory or zip.
+        cfg: DictConfig,                                # Config
+        resolution=None,                                # Unused arg for backward compatibility
+        load_n_consecutive: int=None,                   # Should we load first N frames for each video?
+        load_n_consecutive_random_offset: bool=True,    # Should we use a random offset when loading consecutive frames?
+        subsample_factor: int=1,                        # Sampling factor, i.e. decreasing the temporal resolution
+        discard_short_videos: bool=False,               # Should we discard videos that are shorter than `load_n_consecutive`?
+        **super_kwargs,                                 # Additional arguments for the Dataset base class.
+    ):
+        self.sampling_dict = OmegaConf.to_container(OmegaConf.create({**cfg.sampling})) if 'sampling' in cfg else None
+        self.max_num_frames = cfg.max_num_frames
+        self._path = path
+        self._zipfile = None
+        self.load_n_consecutive = load_n_consecutive
+        self.load_n_consecutive_random_offset = load_n_consecutive_random_offset
+        self.subsample_factor = subsample_factor
+        self.discard_short_videos = discard_short_videos
+
+        if self.subsample_factor > 1 and self.load_n_consecutive is None:
+            raise NotImplementedError("Can do subsampling only when loading consecutive frames.")
+
+        with open('/D_data/Front/data/TalkingHead-1KH/train/cropped_clips_256_names_len30.json') as f:
+            self._video_dict = json.load(f)
+            video_names = self._video_dict['videos']
+        name = os.path.splitext(os.path.basename(self._path))[0]
+        # must be absolute path
+        assert os.path.isdir(self._path) and os.path.exists(self._path)
+        if os.path.isdir(self._path):
+            self._type = 'dir'
+            # We assume that the depth is 1
+            self._all_objects = video_names
+        else:
+            raise IOError('Path must be either a directory or point to a zip archive')
+
+        raw_shape = [len(self._all_objects)] + [3, 256, 256]
+        super().__init__(name=name, raw_shape=raw_shape, **super_kwargs)
+
+    def _open_file(self, fname):
+        if self._type == 'dir':
+            video = read_video(fname)[0].permute(0, 3, 1, 2)  # THWC -> TCHW
+            return video.numpy()
+        return None
+
+    def close(self):
+        try:
+            if self._zipfile is not None:
+                self._zipfile.close()
+        finally:
+            self._zipfile = None
+
+    def __getstate__(self):
+        return dict(super().__getstate__(), _zipfile=None)
+
+    def __len__(self):
+        return len(self._all_objects)
+
+    def __getitem__(self, idx: int) -> Dict:
+        if self.load_n_consecutive:
+            num_frames_available = self._video_dict[self._all_objects[idx]]
+            assert num_frames_available - self.load_n_consecutive * self.subsample_factor >= 0, f"We have only {num_frames_available} frames available, cannot load {self.load_n_consecutive} frames."
+
+            if self.load_n_consecutive_random_offset:
+                random_offset = random.randint(0, num_frames_available - self.load_n_consecutive * self.subsample_factor + self.subsample_factor - 1)
+            else:
+                random_offset = 0
+            frames_idx = np.arange(0, self.load_n_consecutive * self.subsample_factor, self.subsample_factor) + random_offset
+        else:
+            frames_idx = None
+
+        frames, times = self._load_raw_frames(self._raw_idx[idx], frames_idx=frames_idx)
+
+        assert isinstance(frames, np.ndarray)
+        assert list(frames[0].shape) == self.image_shape
+        assert frames.dtype == np.uint8
+        assert len(frames) == len(times)
+
+        if self._xflip[idx]:
+            assert frames.ndim == 4 # TCHW
+            frames = frames[:, :, :, ::-1]
+
+        return {
+            'image': frames.copy(),
+            'label': self.get_label(idx),
+            'times': times,
+            'video_len': self.get_video_len(idx),
+        }
+
+    def get_video_len(self, idx: int) -> int:
+        return min(self.max_num_frames, self._video_dict[self._all_objects[idx]])
+
+    def _load_raw_frames(self, raw_idx: int, frames_idx: List[int]=None) -> Tuple[np.ndarray, np.ndarray]:
+        raw_video = self._open_file(os.path.join(self._path, self._all_objects[raw_idx]))
+        total_len = raw_video.shape[0]
+        offset = 0
+        if frames_idx is None:
+            assert not self.sampling_dict is None, f"The dataset was created without `cfg.sampling` config and cannot sample frames on its own."
+            if total_len > self.max_num_frames:
+                offset = random.randint(0, total_len - self.max_num_frames)
+            frames_idx = sample_frames(self.sampling_dict, total_video_len=min(total_len, self.max_num_frames)) + offset
+        else:
+            frames_idx = np.array(frames_idx)
+
+        images = raw_video[frames_idx]
+
+        return images, frames_idx - offset
+
+    def compute_max_num_frames(self) -> int:
+        return self._video_dict['max_len']
 
 #----------------------------------------------------------------------------
 

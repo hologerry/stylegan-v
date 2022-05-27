@@ -1,6 +1,6 @@
 # @package _group_
 
-num_gpus: 8
+num_gpus: 2
 print_only: false
 
 # Experiment directory naming conventions
@@ -11,7 +11,7 @@ experiment_name_with_hash: ${experiment_name}-${git_hash}
 experiments_dir: experiments
 project_release_dir: ${env.project_path}/${experiments_dir}/${experiment_name_with_hash}
 
-# SLURM config (in case it's instaled on your system)
+# SLURM config (in case it's installed on your system)
 slurm: false
 job_sequence_length: 1
 slurm_log_dir: ${project_release_dir}
@@ -20,11 +20,11 @@ sbatch_args:
   constraint: ${env.slurm_constraint}
   time: "1-0"
   gres: gpu:${num_gpus}
-  cpus-per-task: 8
+  cpus-per-task: 5
   mem:
     _target_: src.infra.utils.num_gpus_to_mem
     num_gpus: ${num_gpus}
-    mem_per_gpu: 16
+    mem_per_gpu: 10
   # mem-per-gpu: 64G
   cpus-per-gpu: 5
   comment: ${experiment_name}

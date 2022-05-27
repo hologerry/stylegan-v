@@ -1,4 +1,5 @@
 # @package _group_
 
-python_bin: ${env.project_path}/env/bin/python
+# python_bin: ${env.project_path}/env/bin/python
+python_bin: python
 project_path: ${hydra:runtime.cwd}

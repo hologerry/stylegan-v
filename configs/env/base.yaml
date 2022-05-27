@@ -1,6 +1,7 @@
 # @package _group_
 
-python_bin: ${env.project_path}/env/bin/python
+# python_bin: ${env.project_path}/env/bin/python
+python_bin: python
 before_train_commands: []
 torch_extensions_dir: "/tmp/torch_extensions"
 objects_to_copy:

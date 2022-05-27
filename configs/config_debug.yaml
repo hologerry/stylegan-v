@@ -11,5 +11,5 @@ defaults:
 
   - env/base.yaml
   - env: local
-  - infra.yaml
-  - training/base.yaml
+  - infra_debug.yaml
+  - training/debug.yaml

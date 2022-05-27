@@ -76,7 +76,7 @@ def create_project_dir(
 
     os.makedirs(project_dir)
     copy_objects(project_dir, objects_to_copy)
-    create_symlinks(project_dir, symlinks_to_create)
+    # create_symlinks(project_dir, symlinks_to_create)
 
     if not quiet:
         print(f'Created a project dir: {project_dir}')
