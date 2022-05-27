@@ -476,7 +476,7 @@ class VideosFolderDataset(Dataset):
         if self.subsample_factor > 1 and self.load_n_consecutive is None:
             raise NotImplementedError("Can do subsampling only when loading consecutive frames.")
 
-        with open('/D_data/Front/data/TalkingHead-1KH/train/cropped_clips_256_names_len30.json') as f:
+        with open('/dev/shm/train/cropped_clips_256_names_len30.json') as f:
             self._video_dict = json.load(f)
             video_names = self._video_dict['videos']
         name = os.path.splitext(os.path.basename(self._path))[0]

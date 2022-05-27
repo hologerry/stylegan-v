@@ -1,5 +1,5 @@
 # @package _group_
 
 name: talkinghead_${dataset.resolution}
-path: /D_data/Front/data/TalkingHead-1KH/train/cropped_clips_256
+path: /dev/shm/train/cropped_clips_256
 fps: 30
